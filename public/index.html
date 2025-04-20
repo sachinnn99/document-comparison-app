@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Document Similarity Checker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+    }
+    .high { background-color: #d4edda; }
+    .medium { background-color: #fff3cd; }
+    .low { background-color: #f8d7da; }
+  </style>
+</head>
+<body>
+  <h2>Upload Text Files</h2>
+  <form id="uploadForm">
+    <input type="file" name="documents" multiple accept=".txt" required />
+    <button type="submit">Upload & Compare</button>
+  </form>
+  <hr>
+  <h3>Similarity Results</h3>
+  <div id="results"></div>
+
+  <script>
+    function getSimilarityClass(score) {
+      if (score > 0.85) return "high";
+      if (score > 0.5) return "medium";
+      return "low";
+    }
+
+    document.getElementById("uploadForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+
+      const table = document.createElement("table");
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Document 1</th>
+            <th>Document 2</th>
+            <th>Similarity Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(pair => `
+            <tr class="${getSimilarityClass(pair.similarity)}">
+              <td>${pair.doc1}</td>
+              <td>${pair.doc2}</td>
+              <td>${(pair.similarity * 100).toFixed(2)}%</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      `;
+      resultsDiv.appendChild(table);
+    };
+  </script>
+</body>
+</html>
