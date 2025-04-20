@@ -7,37 +7,74 @@ const fs = require("fs");
 const app = express();
 const PORT = 3000;
 
+// Serve static files from the public folder
 app.use(express.static("public"));
-const upload = multer({ dest: "uploads/" });
 
+// Ensure uploads directory exists
+const uploadsDir = path.resolve("uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// ✅ Use multer with original file names
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname); // Keep original name
+  },
+});
+
+const upload = multer({ storage });
+
+// Handle upload and comparison
 app.post("/upload", upload.array("documents"), (req, res) => {
-  const uploadDir = path.resolve("uploads");
+  if (!req.files || req.files.length < 2) {
+    return res.status(400).json({ error: "Please upload at least two documents to compare" });
+  }
+
   const pythonScript = path.join(__dirname, "compare.py");
 
-  execFile("python3", [pythonScript, uploadDir], (err, stdout, stderr) => {
+  execFile("python3", [pythonScript, uploadsDir], { maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
     if (err) {
-      console.error("Python error:", stderr);
-      return res.status(500).send("Error processing documents.");
+      console.error("Python execution error:", err);
+      console.error("Python stderr:", stderr);
+      return res.status(500).json({ error: "Error processing documents" });
     }
 
+    console.log("Raw Python output:", stdout);
+
     try {
-      const result = JSON.parse(stdout);
-      // Only delete files after processing is complete
-      fs.readdir(uploadDir, (err, files) => {
+      const result = JSON.parse(stdout.trim());
+
+      // Clean up uploaded files
+      fs.readdir(uploadsDir, (err, files) => {
         if (!err) {
           for (const file of files) {
-            fs.unlink(path.join(uploadDir, file), (err) => {
+            fs.unlink(path.join(uploadsDir, file), (err) => {
               if (err) console.error("Failed to delete", file);
             });
           }
         }
       });
-      res.json(result);
+
+      return res.json(result);
     } catch (e) {
+      console.error("JSON parse error:", e);
       console.error("Invalid JSON from Python:", stdout);
-      res.status(500).send("Invalid result from Python.");
+      return res.status(500).json({
+        error: "Invalid result from Python script",
+        details: e.message,
+      });
     }
   });
 });
 
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+// Start the server
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

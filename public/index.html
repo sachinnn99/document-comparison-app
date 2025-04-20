@@ -1,80 +1,501 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Document Similarity Checker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Similarity Analyzer</title>
   <style>
     body {
-      font-family: sans-serif;
-      max-width: 800px;
-      margin: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
       padding: 20px;
+      line-height: 1.6;
+      color: #333;
     }
+    
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    
+    .container {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 25px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .upload-area {
+      border: 2px dashed #6c757d;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+      background-color: #fff;
+      transition: all 0.3s ease;
+    }
+    
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: #007bff;
+      background-color: #f1f8ff;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .file-label {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.3s;
+    }
+    
+    .file-label:hover {
+      background-color: #0069d9;
+    }
+    
+    .file-list {
+      text-align: left;
+      margin: 15px 0;
+    }
+    
+    .file-item {
+      background-color: #e9ecef;
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin: 5px 0;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    .file-item .remove-btn {
+      margin-left: 8px;
+      color: #dc3545;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #218838;
+    }
+    
+    button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
+    
     table, th, td {
-      border: 1px solid #ccc;
+      border: 1px solid #dee2e6;
     }
+    
     th, td {
-      padding: 10px;
-      text-align: center;
+      padding: 12px;
+      text-align: left;
     }
-    .high { background-color: #d4edda; }
-    .medium { background-color: #fff3cd; }
-    .low { background-color: #f8d7da; }
+    
+    th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    
+    .similarity-cell {
+      text-align: center;
+      font-weight: bold;
+    }
+    
+    .high { 
+      background-color: #d4edda; 
+      color: #155724;
+    }
+    
+    .medium { 
+      background-color: #fff3cd; 
+      color: #856404;
+    }
+    
+    .low { 
+      background-color: #f8d7da; 
+      color: #721c24;
+    }
+    
+    .error {
+      color: #721c24;
+      background-color: #f8d7da;
+      padding: 10px 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 5px solid #f5c6cb;
+    }
+    
+    .success {
+      color: #155724;
+      background-color: #d4edda;
+      padding: 10px 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 5px solid #c3e6cb;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #results {
+      margin-top: 25px;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .progress-bar {
+      height: 8px;
+      background-color: #e9ecef;
+      border-radius: 4px;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+    
+    .progress-bar-fill {
+      height: 100%;
+      background-color: #007bff;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .results-container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    
+    .no-results {
+      text-align: center;
+      padding: 20px;
+      color: #6c757d;
+    }
+    
+    .legend {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+    
+    .legend-item {
+      margin-left: 15px;
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
-  <h2>Upload Text Files</h2>
-  <form id="uploadForm">
-    <input type="file" name="documents" multiple accept=".txt" required />
-    <button type="submit">Upload & Compare</button>
-  </form>
-  <hr>
-  <h3>Similarity Results</h3>
-  <div id="results"></div>
+  <div class="container">
+    <h1>Document Similarity Analyzer</h1>
+    <p>Upload multiple text files to analyze their semantic similarity.</p>
+    
+    <div class="upload-area" id="dropArea">  
+      <h3>Upload Documents</h3>
+      <p>Drag and drop text files here or</p>
+      <label for="fileInput" class="file-label">Choose Files</label>
+      <input type="file" id="fileInput" class="file-input" multiple accept=".txt">
+      <div class="file-list" id="fileList"></div>
+    </div>
+    
+    <button id="analyzeBtn" disabled>Analyze Similarity <span id="spinner" class="spinner hidden"></span></button>
+    
+    <div id="errorMessage" class="error hidden"></div>
+    <div id="successMessage" class="success hidden"></div>
+    
+    <div id="progressContainer" class="hidden">
+      <p>Processing documents...</p>
+      <div class="progress-bar">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+    
+    <div id="results" class="hidden results-container">
+      <h2>Similarity Results</h2>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color high"></div>
+          <span>High Similarity (>85%)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color medium"></div>
+          <span>Medium Similarity (50-85%)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color low"></div>
+          <span>Low Similarity (<50%)</span>
+        </div>
+      </div>
+      <div id="resultsContent"></div>
+    </div>
+  </div>
 
   <script>
+    // Elements
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const spinner = document.getElementById('spinner');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const results = document.getElementById('results');
+    const resultsContent = document.getElementById('resultsContent');
+    
+    // Selected files
+    let selectedFiles = [];
+    
+    // Helper functions
+    function showElement(element) {
+      element.classList.remove('hidden');
+    }
+    
+    function hideElement(element) {
+      element.classList.add('hidden');
+    }
+    
+    function showError(message) {
+      errorMessage.textContent = message;
+      showElement(errorMessage);
+      setTimeout(() => {
+        hideElement(errorMessage);
+      }, 5000);
+    }
+    
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      showElement(successMessage);
+      setTimeout(() => {
+        hideElement(successMessage);
+      }, 3000);
+    }
+    
+    function updateFileList() {
+      fileList.innerHTML = '';
+      
+      if (selectedFiles.length === 0) {
+        analyzeBtn.disabled = true;
+        return;
+      }
+      
+      selectedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+          ${file.name}
+          <span class="remove-btn" data-index="${index}">×</span>
+        `;
+        fileList.appendChild(fileItem);
+      });
+      
+      analyzeBtn.disabled = selectedFiles.length < 2;
+    }
+    
     function getSimilarityClass(score) {
       if (score > 0.85) return "high";
       if (score > 0.5) return "medium";
       return "low";
     }
-
-    document.getElementById("uploadForm").onsubmit = async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const res = await fetch("/upload", {
-        method: "POST",
-        body: formData
-      });
-      const data = await res.json();
-      const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = "";
-
-      const table = document.createElement("table");
-      table.innerHTML = `
-        <thead>
-          <tr>
-            <th>Document 1</th>
-            <th>Document 2</th>
-            <th>Similarity Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map(pair => `
-            <tr class="${getSimilarityClass(pair.similarity)}">
-              <td>${pair.doc1}</td>
-              <td>${pair.doc2}</td>
-              <td>${(pair.similarity * 100).toFixed(2)}%</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      `;
-      resultsDiv.appendChild(table);
-    };
+    
+    function addFiles(fileList) {
+      const newFiles = Array.from(fileList).filter(file => file.type === 'text/plain' || file.name.endsWith('.txt'));
+      
+      if (newFiles.length === 0) {
+        showError('Please select only text (.txt) files.');
+        return;
+      }
+      
+      // Add new files to selected files
+      selectedFiles = [...selectedFiles, ...newFiles];
+      updateFileList();
+      
+      if (newFiles.length > 0) {
+        showSuccess(`${newFiles.length} file${newFiles.length > 1 ? 's' : ''} added successfully.`);
+      }
+    }
+    
+    // Event listeners
+    fileInput.addEventListener('change', (e) => {
+      addFiles(e.target.files);
+      fileInput.value = ''; // Reset input
+    });
+    
+    // Drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, () => {
+        dropArea.classList.add('drag-over');
+      }, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, () => {
+        dropArea.classList.remove('drag-over');
+      }, false);
+    });
+    
+    dropArea.addEventListener('drop', (e) => {
+      addFiles(e.dataTransfer.files);
+    }, false);
+    
+    // Remove file
+    fileList.addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-btn')) {
+        const index = parseInt(e.target.dataset.index);
+        selectedFiles.splice(index, 1);
+        updateFileList();
+      }
+    });
+    
+    // Analyze
+    analyzeBtn.addEventListener('click', async () => {
+      if (selectedFiles.length < 2) {
+        showError('Please select at least two files to compare.');
+        return;
+      }
+      
+      hideElement(results);
+      hideElement(errorMessage);
+      hideElement(successMessage);
+      showElement(spinner);
+      showElement(progressContainer);
+      analyzeBtn.disabled = true;
+      
+      // Simulate progress
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 2;
+        if (progress > 95) progress = 95;
+        progressBar.style.width = `${progress}%`;
+      }, 200);
+      
+      try {
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+          formData.append('documents', file);
+        });
+        
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error processing documents');
+        }
+        
+        const data = await response.json();
+        
+        setTimeout(() => {
+          hideElement(progressContainer);
+          hideElement(spinner);
+          analyzeBtn.disabled = false;
+          
+          if (data.length === 0) {
+            resultsContent.innerHTML = '<div class="no-results">No similarity results available.</div>';
+          } else {
+            resultsContent.innerHTML = `
+              <table>
+                <thead>
+                  <tr>
+                    <th>Document 1</th>
+                    <th>Document 2</th>
+                    <th>Similarity Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.map(pair => `
+                    <tr>
+                      <td>${pair.doc1}</td>
+                      <td>${pair.doc2}</td>
+                      <td class="similarity-cell ${getSimilarityClass(pair.similarity)}">
+                        ${(pair.similarity * 100).toFixed(2)}%
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `;
+          }
+          
+          showElement(results);
+          showSuccess('Analysis completed successfully!');
+        }, 500);
+        
+      } catch (error) {
+        clearInterval(progressInterval);
+        hideElement(progressContainer);
+        hideElement(spinner);
+        analyzeBtn.disabled = false;
+        console.error('Error:', error);
+        showError(error.message || 'An error occurred during analysis.');
+      }
+    });
   </script>
 </body>
 </html>
